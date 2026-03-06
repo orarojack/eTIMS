@@ -18,6 +18,7 @@ import Transactions from './pages/domestic/Transactions';
 import RentalManagement from './pages/domestic/RentalManagement';
 import OrganizationsPage from './pages/organizations/OrganizationsPage';
 import InvoiceList from './pages/sales/invoices/InvoiceList';
+import InvoiceDetail from './pages/sales/invoices/InvoiceDetail';
 import NewInvoice from './pages/sales/invoices/NewInvoice';
 import ProformaList from './pages/sales/proforma/ProformaList';
 import NewProforma from './pages/sales/proforma/NewProforma';
@@ -138,6 +139,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <NewInvoice />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sales/invoices/:id"
+            element={
+              <ProtectedRoute>
+                <InvoiceDetail />
               </ProtectedRoute>
             }
           />

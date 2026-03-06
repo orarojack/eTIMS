@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Print styles - hide chrome, show invoice template only */
+@media print {
+  aside,
+  header,
+  .no-print {
+    display: none !important;
+  }
+  main .container {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  body {
+    background: white !important;
+  }
+}

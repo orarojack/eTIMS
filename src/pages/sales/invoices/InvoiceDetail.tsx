@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, Plus, Printer, Trash2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import ErrorBanner from '../../../components/ui/ErrorBanner';
 import Spinner from '../../../components/ui/Spinner';
@@ -49,6 +49,18 @@ type LineItem = {
   unit_price: string;
 };
 
+type Organization = {
+  id: string;
+  name: string;
+  pin: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string;
+};
+
 function toNullable(value: string): string | null {
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
@@ -71,6 +83,9 @@ export default function InvoiceDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'view' | 'edit'>('view');
+  const [showTemplate, setShowTemplate] = useState(false);
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -120,6 +135,13 @@ export default function InvoiceDetail() {
           .order('created_at', { ascending: false });
         if (itemError) throw itemError;
         setItems((itemData || []) as ItemOption[]);
+
+        const { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .select('id,name,pin,email,phone,address,city,postal_code,country')
+          .eq('id', orgId)
+          .single();
+        if (!orgError) setOrganization((orgData || null) as Organization | null);
 
         const { data: invoiceData, error: invoiceError } = await supabase
           .from('invoices')
@@ -301,7 +323,7 @@ export default function InvoiceDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 no-print">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/sales/invoices')} className="text-gray-600 hover:text-gray-900">
             <ArrowLeft className="w-6 h-6" />
@@ -318,6 +340,22 @@ export default function InvoiceDetail() {
           <div className="flex items-center gap-2">
             {mode === 'view' ? (
               <>
+                <button
+                  onClick={() => setShowTemplate(!showTemplate)}
+                  className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 inline-flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  {showTemplate ? 'Back to View' : 'View Template'}
+                </button>
+                {showTemplate && (
+                  <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800 inline-flex items-center gap-2"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Print
+                  </button>
+                )}
                 <button
                   onClick={() => setMode('edit')}
                   className="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800"
@@ -372,7 +410,7 @@ export default function InvoiceDetail() {
         ) : null}
       </div>
 
-      {error ? <ErrorBanner message={error} /> : null}
+      {error ? <div className="no-print"><ErrorBanner message={error} /></div> : null}
 
       <div className="bg-white rounded-lg shadow">
         {loading ? (
@@ -603,6 +641,92 @@ export default function InvoiceDetail() {
                   <div className="font-semibold text-gray-900">{totals.total.toLocaleString()}</div>
                 </div>
               </div>
+            </div>
+          </div>
+        ) : showTemplate ? (
+          <div ref={printRef} className="bg-white p-8 max-w-4xl mx-auto rounded-lg shadow print:shadow-none print:p-0">
+            {/* Printable invoice template */}
+            <div className="print:block">
+              <div className="border-b border-gray-300 pb-4 mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">{organization?.name || 'Company'}</h1>
+                <div className="text-sm text-gray-600 mt-2">
+                  {organization?.address && <div>{organization.address}</div>}
+                  {organization?.city && <div>{organization.city}{organization.postal_code ? `, ${organization.postal_code}` : ''}</div>}
+                  {organization?.country && <div>{organization.country}</div>}
+                  {organization?.email && <div>{organization.email}</div>}
+                  {organization?.phone && <div>{organization.phone}</div>}
+                  {organization?.pin && <div>PIN: {organization.pin}</div>}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-start gap-8 mb-8">
+                <div>
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Bill To</div>
+                  <div className="font-semibold text-gray-900">{customerName}</div>
+                  <div className="text-sm text-gray-600 mt-1">Customer</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-900">INVOICE</div>
+                  <div className="text-sm text-gray-600 mt-2">
+                    <div>No: {invoice.invoice_number}</div>
+                    <div>Date: {new Date(invoice.invoice_date).toLocaleDateString()}</div>
+                    {invoice.due_date && <div>Due: {new Date(invoice.due_date).toLocaleDateString()}</div>}
+                    <div className="mt-2"><StatusBadge status={invoice.status} /></div>
+                  </div>
+                </div>
+              </div>
+
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-gray-900">
+                    <th className="text-left py-2 text-xs font-semibold text-gray-600 uppercase">Description</th>
+                    <th className="text-right py-2 text-xs font-semibold text-gray-600 uppercase w-20">Qty</th>
+                    <th className="text-right py-2 text-xs font-semibold text-gray-600 uppercase w-28">Unit Price</th>
+                    <th className="text-right py-2 text-xs font-semibold text-gray-600 uppercase w-28">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoiceItems.map((li) => (
+                    <tr key={li.id} className="border-b border-gray-200">
+                      <td className="py-3 text-gray-900">
+                        <div className="font-medium">{li.product_name}</div>
+                        {li.description && <div className="text-sm text-gray-500">{li.description}</div>}
+                      </td>
+                      <td className="py-3 text-right text-gray-900">{li.quantity}</td>
+                      <td className="py-3 text-right text-gray-900">{formatMoney(li.unit_price, 'KES')}</td>
+                      <td className="py-3 text-right text-gray-900 font-medium">{formatMoney(li.amount, 'KES')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="mt-8 flex justify-end">
+                <div className="w-64 space-y-1 text-sm">
+                  {invoice.discount_amount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Discount</span>
+                      <span>{formatMoney(-invoice.discount_amount, 'KES')}</span>
+                    </div>
+                  )}
+                  {invoice.tax_amount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Tax ({invoice.tax_type})</span>
+                      <span>{formatMoney(invoice.tax_amount, 'KES')}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-300">
+                    <span>Total</span>
+                    <span>{formatMoney(invoice.total, 'KES')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {invoice.terms_and_conditions && (
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Terms & Conditions</div>
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap">{invoice.terms_and_conditions}</div>
+                </div>
+              )}
             </div>
           </div>
         ) : (
