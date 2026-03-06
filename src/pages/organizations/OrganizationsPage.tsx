@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { getCurrentOrganizationId } from '../../lib/org';
 
@@ -48,9 +49,19 @@ export default function OrganizationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Organizations</h1>
-        <p className="text-gray-600 mt-1">Manage your organization profile</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Organizations</h1>
+          <p className="text-gray-600 mt-1">Manage your organization profile</p>
+        </div>
+        {org ? (
+          <Link
+            to="/organizations/settings"
+            className="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800"
+          >
+            Edit settings
+          </Link>
+        ) : null}
       </div>
 
       {error ? (

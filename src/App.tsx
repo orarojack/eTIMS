@@ -17,18 +17,24 @@ import Amnesty from './pages/domestic/Amnesty';
 import Transactions from './pages/domestic/Transactions';
 import RentalManagement from './pages/domestic/RentalManagement';
 import OrganizationsPage from './pages/organizations/OrganizationsPage';
+import OrganizationSettings from './pages/organizations/OrganizationSettings';
 import InvoiceList from './pages/sales/invoices/InvoiceList';
 import InvoiceDetail from './pages/sales/invoices/InvoiceDetail';
 import NewInvoice from './pages/sales/invoices/NewInvoice';
 import ProformaList from './pages/sales/proforma/ProformaList';
+import ProformaDetail from './pages/sales/proforma/ProformaDetail';
 import NewProforma from './pages/sales/proforma/NewProforma';
 import QuotationList from './pages/sales/quotations/QuotationList';
+import QuotationDetail from './pages/sales/quotations/QuotationDetail';
 import NewQuotation from './pages/sales/quotations/NewQuotation';
 import SupplierList from './pages/purchases/suppliers/SupplierList';
+import SupplierDetail from './pages/purchases/suppliers/SupplierDetail';
 import NewSupplier from './pages/purchases/suppliers/NewSupplier';
 import PurchaseOrderList from './pages/purchases/orders/PurchaseOrderList';
+import PurchaseOrderDetail from './pages/purchases/orders/PurchaseOrderDetail';
 import NewPurchaseOrder from './pages/purchases/orders/NewPurchaseOrder';
 import PurchaseInvoiceList from './pages/purchases/invoices/PurchaseInvoiceList';
+import PurchaseInvoiceDetail from './pages/purchases/invoices/PurchaseInvoiceDetail';
 import NewPurchaseInvoice from './pages/purchases/invoices/NewPurchaseInvoice';
 
 function App() {
@@ -103,6 +109,14 @@ function App() {
             }
           />
           <Route
+            path="/organizations/settings"
+            element={
+              <ProtectedRoute>
+                <OrganizationSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/sales/customers"
             element={
               <ProtectedRoute>
@@ -167,6 +181,14 @@ function App() {
             }
           />
           <Route
+            path="/sales/proforma/:id"
+            element={
+              <ProtectedRoute>
+                <ProformaDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/sales/quotations"
             element={
               <ProtectedRoute>
@@ -179,6 +201,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <NewQuotation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sales/quotations/:id"
+            element={
+              <ProtectedRoute>
+                <QuotationDetail />
               </ProtectedRoute>
             }
           />
@@ -223,6 +253,14 @@ function App() {
             }
           />
           <Route
+            path="/purchases/suppliers/:id"
+            element={
+              <ProtectedRoute>
+                <SupplierDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/purchases/orders"
             element={
               <ProtectedRoute>
@@ -239,6 +277,14 @@ function App() {
             }
           />
           <Route
+            path="/purchases/orders/:id"
+            element={
+              <ProtectedRoute>
+                <PurchaseOrderDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/purchases/invoices"
             element={
               <ProtectedRoute>
@@ -251,6 +297,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <NewPurchaseInvoice />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/purchases/invoices/:id"
+            element={
+              <ProtectedRoute>
+                <PurchaseInvoiceDetail />
               </ProtectedRoute>
             }
           />
