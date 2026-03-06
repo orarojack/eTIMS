@@ -3,6 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { ArrowLeft } from 'lucide-react';
 
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error) return err.message || fallback;
+  if (typeof err === 'object' && err && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {
+    return (err as { message: string }).message || fallback;
+  }
+  return fallback;
+}
+
 export default function NewItem() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -51,8 +59,8 @@ export default function NewItem() {
       if (insertError) throw insertError;
 
       navigate('/items');
-    } catch (err: any) {
-      setError(err.message || 'Failed to add item');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to add item'));
     } finally {
       setLoading(false);
     }

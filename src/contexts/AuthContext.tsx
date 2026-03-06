@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { clearCachedOrganizationId } from '../services/organization';
 
 interface AuthContextType {
   user: User | null;
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       (async () => {
+        clearCachedOrganizationId();
         setSession(session);
         setUser(session?.user ?? null);
       })();

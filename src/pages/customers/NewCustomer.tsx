@@ -3,6 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { ArrowLeft } from 'lucide-react';
 
+type ValidatedCustomerData = {
+  pin: string;
+  name: string;
+  email: string;
+  address: string;
+};
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error) return err.message || fallback;
+  if (typeof err === 'object' && err && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {
+    return (err as { message: string }).message || fallback;
+  }
+  return fallback;
+}
+
 export default function NewCustomer() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<'pin' | 'manual'>('pin');
@@ -12,7 +27,7 @@ export default function NewCustomer() {
 
   // PIN validation form
   const [pin, setPin] = useState('');
-  const [validatedData, setValidatedData] = useState<any>(null);
+  const [validatedData, setValidatedData] = useState<ValidatedCustomerData | null>(null);
 
   // Manual entry form
   const [activeTab, setActiveTab] = useState<'general' | 'address' | 'other'>('general');
@@ -44,8 +59,8 @@ export default function NewCustomer() {
         address: 'Mama Ngina Drive P.O. BOX 00242-0100 Mombasa, Kenya',
       });
       setSuccess('PIN validated successfully!');
-    } catch (err: any) {
-      setError(err.message || 'Failed to validate PIN');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to validate PIN'));
     } finally {
       setLoading(false);
     }
@@ -82,8 +97,8 @@ export default function NewCustomer() {
       if (insertError) throw insertError;
 
       navigate('/sales/customers');
-    } catch (err: any) {
-      setError(err.message || 'Failed to add customer');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to add customer'));
     } finally {
       setLoading(false);
     }
@@ -116,8 +131,8 @@ export default function NewCustomer() {
       if (insertError) throw insertError;
 
       navigate('/sales/customers');
-    } catch (err: any) {
-      setError(err.message || 'Failed to add customer');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to add customer'));
     } finally {
       setLoading(false);
     }
