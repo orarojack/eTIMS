@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Spinner from '../../components/ui/Spinner';
@@ -122,6 +124,15 @@ export default function OrganizationSettings() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Link
+          to="/organizations"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back to Organizations
+        </Link>
+      </div>
       <PageHeader
         title="Organization"
         subtitle="Manage your organization profile"

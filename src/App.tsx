@@ -36,12 +36,14 @@ import NewPurchaseOrder from './pages/purchases/orders/NewPurchaseOrder';
 import PurchaseInvoiceList from './pages/purchases/invoices/PurchaseInvoiceList';
 import PurchaseInvoiceDetail from './pages/purchases/invoices/PurchaseInvoiceDetail';
 import NewPurchaseInvoice from './pages/purchases/invoices/NewPurchaseInvoice';
+import PublicInvoiceView from './pages/sales/invoices/PublicInvoiceView';
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          <Route path="/i/:token" element={<PublicInvoiceView />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route

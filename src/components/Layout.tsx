@@ -56,7 +56,7 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   const isActive = (path: string) => {
-    return location.pathname === path;
+    return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
   return (

@@ -8,6 +8,10 @@ import StatusBadge from '../../../components/ui/StatusBadge';
 import { FieldShell, SelectInput, TextInput, TextareaInput } from '../../../components/ui/forms';
 import { getCurrentOrganizationId } from '../../../services/organization';
 import { formatMoney, toNumber } from '../../../services/numbers';
+import { getPublicInvoiceViewUrl } from '../../../services/publicInvoiceUrl';
+import InvoiceDocumentTemplate, {
+  type InvoiceDocumentCustomer,
+} from '../../../components/invoices/InvoiceDocumentTemplate';
 
 type CustomerOption = { id: string; name: string };
 type ItemOption = { id: string; item_code: string; name: string; unit_price: number };
@@ -29,6 +33,7 @@ type InvoiceHeader = {
   payment_method: string | null;
   status: string;
   created_at: string;
+  qr_code: string | null;
 };
 
 type InvoiceItem = {
@@ -59,6 +64,7 @@ type Organization = {
   city: string | null;
   postal_code: string | null;
   country: string;
+  logo_url?: string | null;
 };
 
 function toNullable(value: string): string | null {
@@ -94,6 +100,7 @@ export default function InvoiceDetail() {
 
   const [invoice, setInvoice] = useState<InvoiceHeader | null>(null);
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
+  const [invoiceCustomer, setInvoiceCustomer] = useState<InvoiceDocumentCustomer | null>(null);
 
   const [header, setHeader] = useState({
     customer_id: '',
@@ -138,7 +145,7 @@ export default function InvoiceDetail() {
 
         const { data: orgData, error: orgError } = await supabase
           .from('organizations')
-          .select('id,name,pin,email,phone,address,city,postal_code,country')
+          .select('id,name,pin,email,phone,address,city,postal_code,country,logo_url')
           .eq('id', orgId)
           .single();
         if (!orgError) setOrganization((orgData || null) as Organization | null);
@@ -146,11 +153,18 @@ export default function InvoiceDetail() {
         const { data: invoiceData, error: invoiceError } = await supabase
           .from('invoices')
           .select(
-            'id,customer_id,invoice_number,invoice_date,due_date,sale_type,tax_type,subtotal,discount_percentage,discount_amount,tax_amount,total,terms_and_conditions,payment_method,status,created_at'
+            'id,customer_id,invoice_number,invoice_date,due_date,sale_type,tax_type,subtotal,discount_percentage,discount_amount,tax_amount,total,terms_and_conditions,payment_method,status,created_at,qr_code'
           )
           .eq('id', id)
           .single();
         if (invoiceError) throw invoiceError;
+
+        let effectiveQr = invoiceData.qr_code as string | null;
+        if (!effectiveQr?.trim()) {
+          const next = crypto.randomUUID();
+          const { error: patchQrError } = await supabase.from('invoices').update({ qr_code: next }).eq('id', id);
+          if (!patchQrError) effectiveQr = next;
+        }
 
         const { data: itemsData, error: itemsError } = await supabase
           .from('invoice_items')
@@ -159,7 +173,37 @@ export default function InvoiceDetail() {
           .order('created_at', { ascending: true });
         if (itemsError) throw itemsError;
 
-        setInvoice(invoiceData as InvoiceHeader);
+        const { data: customerRow } = await supabase
+          .from('customers')
+          .select('name,pin,email,phone,address,city,postal_code,country')
+          .eq('id', invoiceData.customer_id)
+          .single();
+        if (customerRow && typeof customerRow === 'object' && 'name' in customerRow) {
+          const c = customerRow as {
+            name: string;
+            pin: string | null;
+            email: string | null;
+            phone: string | null;
+            address: string | null;
+            city: string | null;
+            postal_code: string | null;
+            country: string;
+          };
+          setInvoiceCustomer({
+            name: c.name,
+            pin: c.pin,
+            email: c.email,
+            phone: c.phone,
+            address: c.address,
+            city: c.city,
+            postal_code: c.postal_code,
+            country: c.country,
+          });
+        } else {
+          setInvoiceCustomer(null);
+        }
+
+        setInvoice({ ...(invoiceData as InvoiceHeader), qr_code: effectiveQr });
         setInvoiceItems((itemsData || []) as InvoiceItem[]);
 
         setHeader({
@@ -264,7 +308,7 @@ export default function InvoiceDetail() {
         })
         .eq('id', id)
         .select(
-          'id,customer_id,invoice_number,invoice_date,due_date,sale_type,tax_type,subtotal,discount_percentage,discount_amount,tax_amount,total,terms_and_conditions,payment_method,status,created_at'
+          'id,customer_id,invoice_number,invoice_date,due_date,sale_type,tax_type,subtotal,discount_percentage,discount_amount,tax_amount,total,terms_and_conditions,payment_method,status,created_at,qr_code'
         )
         .single();
 
@@ -645,89 +689,26 @@ export default function InvoiceDetail() {
           </div>
         ) : showTemplate ? (
           <div ref={printRef} className="bg-white p-8 max-w-4xl mx-auto rounded-lg shadow print:shadow-none print:p-0">
-            {/* Printable invoice template */}
-            <div className="print:block">
-              <div className="border-b border-gray-300 pb-4 mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">{organization?.name || 'Company'}</h1>
-                <div className="text-sm text-gray-600 mt-2">
-                  {organization?.address && <div>{organization.address}</div>}
-                  {organization?.city && <div>{organization.city}{organization.postal_code ? `, ${organization.postal_code}` : ''}</div>}
-                  {organization?.country && <div>{organization.country}</div>}
-                  {organization?.email && <div>{organization.email}</div>}
-                  {organization?.phone && <div>{organization.phone}</div>}
-                  {organization?.pin && <div>PIN: {organization.pin}</div>}
-                </div>
-              </div>
-
-              <div className="flex justify-between items-start gap-8 mb-8">
-                <div>
-                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Bill To</div>
-                  <div className="font-semibold text-gray-900">{customerName}</div>
-                  <div className="text-sm text-gray-600 mt-1">Customer</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-gray-900">INVOICE</div>
-                  <div className="text-sm text-gray-600 mt-2">
-                    <div>No: {invoice.invoice_number}</div>
-                    <div>Date: {new Date(invoice.invoice_date).toLocaleDateString()}</div>
-                    {invoice.due_date && <div>Due: {new Date(invoice.due_date).toLocaleDateString()}</div>}
-                    <div className="mt-2"><StatusBadge status={invoice.status} /></div>
-                  </div>
-                </div>
-              </div>
-
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-gray-900">
-                    <th className="text-left py-2 text-xs font-semibold text-gray-600 uppercase">Description</th>
-                    <th className="text-right py-2 text-xs font-semibold text-gray-600 uppercase w-20">Qty</th>
-                    <th className="text-right py-2 text-xs font-semibold text-gray-600 uppercase w-28">Unit Price</th>
-                    <th className="text-right py-2 text-xs font-semibold text-gray-600 uppercase w-28">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoiceItems.map((li) => (
-                    <tr key={li.id} className="border-b border-gray-200">
-                      <td className="py-3 text-gray-900">
-                        <div className="font-medium">{li.product_name}</div>
-                        {li.description && <div className="text-sm text-gray-500">{li.description}</div>}
-                      </td>
-                      <td className="py-3 text-right text-gray-900">{li.quantity}</td>
-                      <td className="py-3 text-right text-gray-900">{formatMoney(li.unit_price, 'KES')}</td>
-                      <td className="py-3 text-right text-gray-900 font-medium">{formatMoney(li.amount, 'KES')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <div className="mt-8 flex justify-end">
-                <div className="w-64 space-y-1 text-sm">
-                  {invoice.discount_amount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Discount</span>
-                      <span>{formatMoney(-invoice.discount_amount, 'KES')}</span>
-                    </div>
-                  )}
-                  {invoice.tax_amount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Tax ({invoice.tax_type})</span>
-                      <span>{formatMoney(invoice.tax_amount, 'KES')}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-300">
-                    <span>Total</span>
-                    <span>{formatMoney(invoice.total, 'KES')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {invoice.terms_and_conditions && (
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Terms & Conditions</div>
-                  <div className="text-sm text-gray-700 whitespace-pre-wrap">{invoice.terms_and_conditions}</div>
-                </div>
-              )}
-            </div>
+            <InvoiceDocumentTemplate
+              organization={organization}
+              customer={invoiceCustomer}
+              customerName={customerName}
+              invoice={{
+                invoice_number: invoice.invoice_number,
+                invoice_date: invoice.invoice_date,
+                due_date: invoice.due_date,
+                tax_type: invoice.tax_type,
+                subtotal: invoice.subtotal,
+                discount_percentage: invoice.discount_percentage,
+                discount_amount: invoice.discount_amount,
+                tax_amount: invoice.tax_amount,
+                total: invoice.total,
+                terms_and_conditions: invoice.terms_and_conditions,
+                status: invoice.status,
+              }}
+              invoiceItems={invoiceItems}
+              qrUrl={invoice.qr_code?.trim() ? getPublicInvoiceViewUrl(invoice.qr_code) : null}
+            />
           </div>
         ) : (
           <div className="p-6 space-y-6">

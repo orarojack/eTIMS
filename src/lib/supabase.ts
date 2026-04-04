@@ -1,5 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
+type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -711,7 +719,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      get_public_sales_invoice: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
     };
     Enums: {
       [_ in never]: never;
