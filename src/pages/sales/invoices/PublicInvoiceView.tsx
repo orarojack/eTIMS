@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { Printer } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import Spinner from '../../../components/ui/Spinner';
+import { InvoiceDocumentShell } from '../../../components/invoices/InvoiceDocumentShell';
+import { getPublicInvoiceViewUrl } from '../../../services/publicInvoiceUrl';
 import InvoiceDocumentTemplate, {
   type InvoiceDocumentCustomer,
   type InvoiceDocumentHeader,
@@ -67,6 +70,7 @@ export default function PublicInvoiceView() {
     return normalizeShareToken(fromQuery ?? pathToken);
   }, [searchParams, pathToken]);
 
+  const printRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [payload, setPayload] = useState<{
@@ -195,16 +199,29 @@ export default function PublicInvoiceView() {
     );
   }
 
+  const qrUrl = resolvedToken ? getPublicInvoiceViewUrl(resolvedToken) : null;
+
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 print:bg-white">
-      <div className="mx-auto max-w-4xl rounded-xl bg-white p-6 shadow-lg print:shadow-none md:p-10 print:p-6">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 print:bg-white print:py-0 print:px-0">
+      <div className="no-print mx-auto mb-4 flex max-w-4xl justify-end px-0">
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-2 rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800"
+        >
+          <Printer className="h-4 w-4" />
+          Print / Save as PDF
+        </button>
+      </div>
+      <InvoiceDocumentShell ref={printRef}>
         <InvoiceDocumentTemplate
           organization={payload.organization}
           customer={payload.customer}
           invoice={payload.invoice}
           invoiceItems={payload.items}
+          qrUrl={qrUrl}
         />
-      </div>
+      </InvoiceDocumentShell>
     </div>
   );
 }

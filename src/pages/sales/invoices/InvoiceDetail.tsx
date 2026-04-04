@@ -12,6 +12,7 @@ import { getPublicInvoiceViewUrl } from '../../../services/publicInvoiceUrl';
 import InvoiceDocumentTemplate, {
   type InvoiceDocumentCustomer,
 } from '../../../components/invoices/InvoiceDocumentTemplate';
+import { InvoiceDocumentShell } from '../../../components/invoices/InvoiceDocumentShell';
 
 type CustomerOption = { id: string; name: string };
 type ItemOption = { id: string; item_code: string; name: string; unit_price: number };
@@ -456,7 +457,13 @@ export default function InvoiceDetail() {
 
       {error ? <div className="no-print"><ErrorBanner message={error} /></div> : null}
 
-      <div className="bg-white rounded-lg shadow">
+      <div
+        className={
+          showTemplate && mode === 'view'
+            ? 'bg-white rounded-lg shadow print:rounded-none print:bg-transparent print:shadow-none'
+            : 'bg-white rounded-lg shadow'
+        }
+      >
         {loading ? (
           <div className="p-8 text-center">
             <div className="inline-block">
@@ -688,7 +695,7 @@ export default function InvoiceDetail() {
             </div>
           </div>
         ) : showTemplate ? (
-          <div ref={printRef} className="bg-white p-8 max-w-4xl mx-auto rounded-lg shadow print:shadow-none print:p-0">
+          <InvoiceDocumentShell ref={printRef}>
             <InvoiceDocumentTemplate
               organization={organization}
               customer={invoiceCustomer}
@@ -709,7 +716,7 @@ export default function InvoiceDetail() {
               invoiceItems={invoiceItems}
               qrUrl={invoice.qr_code?.trim() ? getPublicInvoiceViewUrl(invoice.qr_code) : null}
             />
-          </div>
+          </InvoiceDocumentShell>
         ) : (
           <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
