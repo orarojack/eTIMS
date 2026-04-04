@@ -148,6 +148,7 @@ export default function NewProforma() {
           terms_and_conditions: header.terms_and_conditions.trim() ? header.terms_and_conditions.trim() : null,
           payment_method: header.payment_method.trim() ? header.payment_method.trim() : null,
           status: header.status,
+          qr_code: crypto.randomUUID(),
         })
         .select('id')
         .single();

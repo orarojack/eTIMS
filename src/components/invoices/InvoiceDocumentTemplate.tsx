@@ -47,6 +47,8 @@ export type InvoiceDocumentHeader = {
   status: string;
 };
 
+export type InvoiceDocumentKind = 'invoice' | 'proforma';
+
 type Props = {
   organization: InvoiceDocumentOrganization | null;
   customer: InvoiceDocumentCustomer | null;
@@ -56,6 +58,8 @@ type Props = {
   invoiceItems: InvoiceDocumentLine[];
   /** When set, shows a QR that opens this URL (public invoice view). */
   qrUrl?: string | null;
+  /** Controls headings/labels; default matches sales invoice. */
+  documentKind?: InvoiceDocumentKind;
 };
 
 function joinParts(parts: (string | null | undefined)[]): string {
@@ -71,6 +75,28 @@ function formatDisplayDate(iso: string): string {
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function labelsForKind(kind: InvoiceDocumentKind | undefined) {
+  const k = kind ?? 'invoice';
+  if (k === 'proforma') {
+    return {
+      title: 'PROFORMA',
+      qrIdLabel: 'Proforma ID',
+      detailsTitle: 'Proforma details',
+      numberLabel: 'Proforma number',
+      dateLabel: 'Proforma date',
+      totalLabel: 'Proforma total',
+    };
+  }
+  return {
+    title: 'INVOICE',
+    qrIdLabel: 'Invoice ID',
+    detailsTitle: 'Invoice details',
+    numberLabel: 'Invoice number',
+    dateLabel: 'Invoice date',
+    totalLabel: 'Invoice total',
+  };
+}
+
 export default function InvoiceDocumentTemplate({
   organization,
   customer,
@@ -78,7 +104,9 @@ export default function InvoiceDocumentTemplate({
   invoice,
   invoiceItems,
   qrUrl,
+  documentKind,
 }: Props) {
+  const L = labelsForKind(documentKind);
   const buyerName = customer?.name?.trim() || customerName?.trim() || 'Customer';
   const org = organization;
 
@@ -118,7 +146,7 @@ export default function InvoiceDocumentTemplate({
         {/* Title row + QR */}
         <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">INVOICE</h1>
+            <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">{L.title}</h1>
             {org?.logo_url ? (
               <div className="mt-4">
                 <img
@@ -134,12 +162,12 @@ export default function InvoiceDocumentTemplate({
               <>
                 <QRCodeSVG value={qrUrl} size={112} level="M" includeMargin className="rounded-lg bg-white p-1" />
                 <p className="mt-2 text-center text-xs font-medium text-slate-600 sm:text-right">
-                  Invoice ID: <span className="font-semibold text-slate-800">{invoice.invoice_number}</span>
+                  {L.qrIdLabel}: <span className="font-semibold text-slate-800">{invoice.invoice_number}</span>
                 </p>
               </>
             ) : (
               <p className="text-xs font-medium text-slate-600">
-                Invoice ID: <span className="font-semibold text-slate-800">{invoice.invoice_number}</span>
+                {L.qrIdLabel}: <span className="font-semibold text-slate-800">{invoice.invoice_number}</span>
               </p>
             )}
           </div>
@@ -183,18 +211,18 @@ export default function InvoiceDocumentTemplate({
 
           <div>
             <div className="mb-3 inline-block rounded-md bg-slate-700 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white">
-              Invoice details
+              {L.detailsTitle}
             </div>
             <div className="space-y-3 text-sm">
               <div>
                 <span className="mb-1 inline-block rounded bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                  Invoice number
+                  {L.numberLabel}
                 </span>
                 <p className="mt-1 font-semibold text-slate-900">N°: {invoice.invoice_number}</p>
               </div>
               <div>
                 <span className="mb-1 inline-block rounded bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                  Invoice date
+                  {L.dateLabel}
                 </span>
                 <p className="mt-1 font-semibold text-slate-900">{formatDisplayDate(invoice.invoice_date)}</p>
               </div>
@@ -276,7 +304,7 @@ export default function InvoiceDocumentTemplate({
               </div>
             ) : null}
             <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-100/90 px-4 py-4 shadow-sm">
-              <span className="font-semibold text-slate-800">Invoice total</span>
+              <span className="font-semibold text-slate-800">{L.totalLabel}</span>
               <span className="text-xl font-bold tracking-tight text-slate-900">
                 {formatMoney(invoice.total, 'KES')}
               </span>

@@ -410,6 +410,7 @@ export type Database = {
           terms_and_conditions: string | null;
           payment_method: string | null;
           status: string;
+          qr_code: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -428,6 +429,7 @@ export type Database = {
           terms_and_conditions?: string | null;
           payment_method?: string | null;
           status?: string;
+          qr_code?: string | null;
         };
         Update: {
           customer_id?: string;
@@ -443,6 +445,7 @@ export type Database = {
           terms_and_conditions?: string | null;
           payment_method?: string | null;
           status?: string;
+          qr_code?: string | null;
         };
         Relationships: Relationship[];
       };
@@ -720,6 +723,10 @@ export type Database = {
     };
     Functions: {
       get_public_sales_invoice: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      get_public_proforma: {
         Args: { p_token: string };
         Returns: Json;
       };

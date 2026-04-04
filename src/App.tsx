@@ -37,6 +37,7 @@ import PurchaseInvoiceList from './pages/purchases/invoices/PurchaseInvoiceList'
 import PurchaseInvoiceDetail from './pages/purchases/invoices/PurchaseInvoiceDetail';
 import NewPurchaseInvoice from './pages/purchases/invoices/NewPurchaseInvoice';
 import PublicInvoiceView from './pages/sales/invoices/PublicInvoiceView';
+import PublicProformaView from './pages/sales/proforma/PublicProformaView';
 
 function App() {
   return (
@@ -45,6 +46,8 @@ function App() {
         <Routes>
           <Route path="/i" element={<PublicInvoiceView />} />
           <Route path="/i/:token" element={<PublicInvoiceView />} />
+          <Route path="/pf" element={<PublicProformaView />} />
+          <Route path="/pf/:token" element={<PublicProformaView />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route

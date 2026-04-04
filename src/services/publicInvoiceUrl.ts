@@ -15,3 +15,15 @@ export function getPublicInvoiceViewUrl(qrToken: string): string {
   const path = `/i?token=${encodeURIComponent(qrToken)}`;
   return base ? `${base}${path}` : path;
 }
+
+/** Public proforma template (same layout as invoice). */
+export function getPublicProformaViewUrl(qrToken: string): string {
+  const fromEnv = (import.meta.env.VITE_PUBLIC_APP_URL as string | undefined)?.trim();
+  const base = fromEnv
+    ? fromEnv.replace(/\/$/, '')
+    : typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : '';
+  const path = `/pf?token=${encodeURIComponent(qrToken)}`;
+  return base ? `${base}${path}` : path;
+}
