@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import Spinner from '../../../components/ui/Spinner';
 import InvoiceDocumentTemplate, {
@@ -25,8 +25,48 @@ type RpcPayload = {
   items?: unknown[];
 };
 
+function normalizeShareToken(raw: string | undefined): string {
+  if (!raw?.trim()) return '';
+  const t = raw.trim();
+  try {
+    return decodeURIComponent(t);
+  } catch {
+    return t;
+  }
+}
+
+function parseRpcJson(raw: unknown): RpcPayload | null {
+  if (raw == null) return null;
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      return typeof parsed === 'object' && parsed !== null ? (parsed as RpcPayload) : null;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw === 'object') {
+    return raw as RpcPayload;
+  }
+  return null;
+}
+
+function getErrorMessage(e: unknown): string {
+  if (e && typeof e === 'object' && 'message' in e && typeof (e as { message: unknown }).message === 'string') {
+    return (e as { message: string }).message;
+  }
+  return 'Failed to load invoice';
+}
+
 export default function PublicInvoiceView() {
-  const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const { token: pathToken } = useParams<{ token: string }>();
+
+  const resolvedToken = useMemo(() => {
+    const fromQuery = searchParams.get('token') ?? searchParams.get('t');
+    return normalizeShareToken(fromQuery ?? pathToken);
+  }, [searchParams, pathToken]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [payload, setPayload] = useState<{
@@ -42,20 +82,24 @@ export default function PublicInvoiceView() {
       setError('');
       setPayload(null);
       try {
-        if (!token?.trim()) {
+        if (!resolvedToken) {
           setError('Invalid link');
           return;
         }
-        const decoded = decodeURIComponent(token);
         const { data: raw, error: rpcError } = await supabase.rpc('get_public_sales_invoice', {
-          p_token: decoded,
+          p_token: resolvedToken,
         });
-        if (rpcError) throw rpcError;
-        if (raw == null || typeof raw !== 'object') {
+        if (rpcError) {
+          setError(
+            [rpcError.message, rpcError.details].filter(Boolean).join(' — ') || 'Could not load invoice from server'
+          );
+          return;
+        }
+        const p = parseRpcJson(raw);
+        if (!p) {
           setError('Invoice not found');
           return;
         }
-        const p = raw as RpcPayload;
         const inv = p.invoice;
         if (!inv || typeof inv !== 'object') {
           setError('Invoice not found');
@@ -128,12 +172,12 @@ export default function PublicInvoiceView() {
           items,
         });
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'Failed to load invoice');
+        setError(getErrorMessage(e));
       } finally {
         setLoading(false);
       }
     })();
-  }, [token]);
+  }, [resolvedToken]);
 
   if (loading) {
     return (

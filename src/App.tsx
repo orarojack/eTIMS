@@ -43,6 +43,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          <Route path="/i" element={<PublicInvoiceView />} />
           <Route path="/i/:token" element={<PublicInvoiceView />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
